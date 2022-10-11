@@ -1,7 +1,8 @@
-from django.shortcuts import render, HttpResponse
+from django.shortcuts import render, HttpResponse, redirect
 from django.views.decorators.csrf import csrf_exempt
 # Create your views here.
 
+next_id = 4
 topics = [
     {'id': 1, 'title': 'routing', 'body': 'Routing is ...'},
     {'id': 2, 'title': 'view', 'body': 'View is ...'},
@@ -51,11 +52,22 @@ def read(request, id):
 
 @csrf_exempt
 def create(request):
-    article = '''
-<form action="/create/" method="post">
-    <p><input type="text" name="title" placeholder="title"></p>
-    <p><textarea type="text" name="body" placeholder="body"></textarea></p>
-    <p><input type="submit"></input></p>
-</form>
-    '''
-    return HttpResponse(HTMLTemplate(article))
+    global next_id
+    if request.method == 'GET':
+        article = '''
+            <form action="/create/" method="post">
+                <p><input type="text" name="title" placeholder="title"></p>
+                <p><textarea type="text" name="body" placeholder="body"></textarea></p>
+                <p><input type="submit"></input></p>
+            </form>
+        '''
+        return HttpResponse(HTMLTemplate(article))
+
+    elif request.method == 'POST':
+        title = request.POST['title']
+        body = request.POST['body']
+        new_topic = {"id": next_id, "title": title, "body": body}
+        topics.append(new_topic)
+        url = '/read/' + str(next_id)
+        next_id += 1
+        return redirect(url)
