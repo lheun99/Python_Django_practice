@@ -10,8 +10,20 @@ topics = [
 ]
 
 
-def HTMLTemplate(articleTag):
+def HTMLTemplate(articleTag, id=None):
     global topics
+    context_ui = ''
+    if id != None:
+        context_ui = (f'''
+            <li>
+                <form action="/delete/" method="post">
+                    <input type="hidden" name="id" value={id}>
+                    <input type="submit" value="delete">
+                </form>
+            </li>
+            <li><a href="/update/{id}">update</a></li>
+        ''')
+
     ol = ''
     for topic in topics:
         ol += f'<li><a href="/read/{topic["id"]}">{topic["title"]}</a></li>'
@@ -26,6 +38,7 @@ def HTMLTemplate(articleTag):
             {articleTag}
             <ul>
                 <li><a href="/create/">create</a></li>
+                {context_ui}
             </ul>
         </body>
     </html>
@@ -47,7 +60,7 @@ def read(request, id):
         if topic['id'] == int(id):
             article = f'<h2>{topic["title"]}</h2>{topic["body"]}'
 
-    return HttpResponse(HTMLTemplate(article))
+    return HttpResponse(HTMLTemplate(article, id))
 
 
 @csrf_exempt
@@ -71,3 +84,49 @@ def create(request):
         url = '/read/' + str(next_id)
         next_id += 1
         return redirect(url)
+
+
+@csrf_exempt
+def update(request, id):
+    global topics
+
+    if request.method == 'GET':
+        for topic in topics:
+            if topic['id'] == int(id):
+                selected_topic = {
+                    "title": topic["title"],
+                    "body": topic["body"]
+                }
+
+        article = (f'''
+            <form action="/update/{id}/" method="post">
+                <p><input type="text" name="title" placeholder="title" value={selected_topic['title']}></p>
+                <p><textarea type="text" name="body" placeholder="body">{selected_topic['body']}</textarea></p>
+                <p><input type="submit"></input></p>
+            </form>
+        ''')
+        return HttpResponse(HTMLTemplate(article, id))
+
+    elif request.method == 'POST':
+        title = request.POST['title']
+        body = request.POST['body']
+        for topic in topics:
+            if topic['id'] == int(id):
+                topic["title"] = title
+                topic["body"] = body
+        return redirect(f'/read/{id}')
+
+
+@csrf_exempt
+def delete(request):
+    global topics
+
+    if request.method == 'POST':
+        id = request.POST['id']
+        new_topics = []
+        for topic in topics:
+            if topic['id'] != int(id):
+                new_topics.append(topic)
+        topics = new_topics
+
+        return redirect('/')
